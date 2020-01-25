@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class TreasureHunter : MonoBehaviour
 {
+    
     public List<CollectibleTreasure> collectiblesInScene; 
     public TreasureHunterInventory inventory;
     public OVRCameraRig oVRCameraRig;

@@ -49,7 +49,8 @@ public class TreasureHunter : MonoBehaviour
             scoreText.text = "Score: " + score + "\n" + 
                              "Count: " + count;
         }else if(score == 60){
-            wonText.text = "You Win!";
+            wonText.text = "You Win!" + "\n" + 
+                           "Meris Beganovic";
         }
     }
 

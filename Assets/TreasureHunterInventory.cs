@@ -1,8 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class TreasureHunterInventory : MonoBehaviour
 {
-    public List<CollectibleTreasure> inventoryItems;
+    [Serializable]
+    public class CollecibleAmountMap : SerializableDictionary<CollectibleTreasure, int> {}
+    public CollecibleAmountMap numberOfEachThingICollected;
 }

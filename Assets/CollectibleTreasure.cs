@@ -5,4 +5,5 @@ using UnityEngine;
 public class CollectibleTreasure : MonoBehaviour
 {
    public int treasureValue = 0;
+   public string prefab;
 }

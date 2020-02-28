@@ -5,10 +5,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum AttachmentRule { KeepRelative, KeepWorld, SnapToTarget }
 
 public class TreasureHunter : MonoBehaviour {
+    public MeshRenderer scaryPlane;
+    public MeshRenderer ground;
+    public AudioSource scaryScream;
     public TreasureHunterInventory inventory;
     public OVRCameraRig oVRCameraRig;
     public TextMesh scoreText;
@@ -32,32 +36,34 @@ public class TreasureHunter : MonoBehaviour {
 
     void Start () {
         //camera = this.gameObject.GetComponent<Camera> ();
+        scaryPlane.enabled = false;
+        scaryScream.enabled = false;
         oVRCameraRig = this.gameObject.GetComponent<OVRCameraRig> ();
         inventory = this.gameObject.GetComponent<TreasureHunterInventory> ();
         myName.text = "Meris Beganovic";
     }
 
     void Update () {
-        int score = calculateScore ();
-        int count = inventory.numberOfEachThingICollected.Sum (amountCollected => amountCollected.Value);
-        scoreText.text = "Item | Value | Count\n";
-        foreach (CollectibleTreasure treasure in inventory.numberOfEachThingICollected.Keys) {
-            scoreText.text += treasure + " | " + treasure.treasureValue + " | " + inventory.numberOfEachThingICollected[treasure] + "\n";
-        }
-        scoreText.text += "Total Score = " + score + "\n" + "Total Items = " + count;
+        // int score = calculateScore ();
+        // int count = inventory.numberOfEachThingICollected.Sum (amountCollected => amountCollected.Value);
+        // scoreText.text = "Item | Value | Count\n";
+        // foreach (CollectibleTreasure treasure in inventory.numberOfEachThingICollected.Keys) {
+        //     scoreText.text += treasure + " | " + treasure.treasureValue + " | " + inventory.numberOfEachThingICollected[treasure] + "\n";
+        // }
+        // scoreText.text += "Total Score = " + score + "\n" + "Total Items = " + count;
 
-        if (Input.GetKeyDown ("1")) {
-            // got from nick code
-            RaycastHit hit;
-            if (Physics.Raycast (transform.position, transform.forward, out hit, 100.0f)) {
-                name = hit.transform.GetComponent<CollectibleTreasure> ().prefab;
-                // You’ll need to change LoadAssetAtPath to Resources.Load to get it to build
-                CollectibleTreasure prefab = Resources.Load (name + ".prefab", typeof (CollectibleTreasure)) as CollectibleTreasure;
-                if (!inventory.numberOfEachThingICollected.ContainsKey (prefab)) inventory.numberOfEachThingICollected.Add (prefab, 1);
-                else inventory.numberOfEachThingICollected[prefab] += 1;
-                Destroy (hit.transform.gameObject);
-            }
-        }
+        // if (Input.GetKeyDown ("1")) {
+        //     // got from nick code
+        //     RaycastHit hit;
+        //     if (Physics.Raycast (transform.position, transform.forward, out hit, 100.0f)) {
+        //         name = hit.transform.GetComponent<CollectibleTreasure> ().prefab;
+        //         // You’ll need to change LoadAssetAtPath to Resources.Load to get it to build
+        //         CollectibleTreasure prefab = Resources.Load (name + ".prefab", typeof (CollectibleTreasure)) as CollectibleTreasure;
+        //         if (!inventory.numberOfEachThingICollected.ContainsKey (prefab)) inventory.numberOfEachThingICollected.Add (prefab, 1);
+        //         else inventory.numberOfEachThingICollected[prefab] += 1;
+        //         Destroy (hit.transform.gameObject);
+        //     }
+        // }
         //equivalent to GrabRight in UE4 version (right grip)    
         if (OVRInput.GetDown (OVRInput.RawButton.RHandTrigger)) {
             // outputText3.text = "Grip";
@@ -228,6 +234,12 @@ public class TreasureHunter : MonoBehaviour {
                 newRB.velocity = oldParentVelocity;
             }
         }
+    }
+
+    void OnTriggerEnter (Collider collider) {
+        ground.enabled = false;
+        scaryPlane.enabled = true;
+        scaryScream.enabled = true;
     }
 
 }

@@ -10,18 +10,11 @@ using UnityEngine.UI;
 public enum AttachmentRule { KeepRelative, KeepWorld, SnapToTarget }
 
 public class TreasureHunter : MonoBehaviour {
-    public MeshRenderer scaryPlane;
-    public MeshRenderer ground;
-    public AudioSource scaryScream;
     public TreasureHunterInventory inventory;
     public OVRCameraRig oVRCameraRig;
-    public TextMesh scoreText;
     public TextMesh myName;
     public Camera camera;
-
-    int currentTotalScore;
-
-    // camera.transform.location.y
+    public Camera aerialCam;
 
     /////////////////////////////////////////////// NICK CODE
     public GameObject leftPointerObject;
@@ -34,36 +27,63 @@ public class TreasureHunter : MonoBehaviour {
     Vector3 previousPointerPos; //using this for velocity since Unity's broken physics engine won't give it to me otherwise
     ///////////////////////////////////////////////////////
 
+    //a7
+    Vector3 prevForwardVector;
+    float prevYawRelativeToCenter;
+    public GameObject VRTrackingOrigin;
+    float howMuchUserRotated;
+    float directionUserRotated;
+    float deltaYawRelativeToCenter;
+    float distanceFromCenter;
+    float longestDimensionOfPE = 0.25f; // usually 5m but set to 0.5 bc thats scale of plane
+    float howMuchToAccelerate;
+    Vector3 prevLocation;
+    Vector3 trajectoryVector;
+    Vector3 howMuchToTranslate;
+
+    public float d (Vector3 A, Vector3 B, Vector3 C) {
+        return (A.x - B.x) * (C.z - B.z) - (A.z - B.z) * (C.x - B.x);
+    }
+    public float angleBetweenVectors (Vector3 A, Vector3 B) {
+        // A.y = 0;
+        // B.y = 0;
+        return (Mathf.Acos (Vector3.Dot (Vector3.Normalize (A), Vector3.Normalize (B)))) * (180 / Mathf.PI);
+    }
+
     void Start () {
-        //camera = this.gameObject.GetComponent<Camera> ();
-        scaryPlane.enabled = false;
-        scaryScream.enabled = false;
         oVRCameraRig = this.gameObject.GetComponent<OVRCameraRig> ();
         inventory = this.gameObject.GetComponent<TreasureHunterInventory> ();
         myName.text = "Meris Beganovic";
+
+        // s2c
+        prevForwardVector = camera.transform.forward;
+        prevYawRelativeToCenter = angleBetweenVectors (camera.transform.forward, VRTrackingOrigin.transform.position - camera.transform.position);
+        prevLocation = camera.transform.position;
     }
 
     void Update () {
-        // int score = calculateScore ();
-        // int count = inventory.numberOfEachThingICollected.Sum (amountCollected => amountCollected.Value);
-        // scoreText.text = "Item | Value | Count\n";
-        // foreach (CollectibleTreasure treasure in inventory.numberOfEachThingICollected.Keys) {
-        //     scoreText.text += treasure + " | " + treasure.treasureValue + " | " + inventory.numberOfEachThingICollected[treasure] + "\n";
-        // }
-        // scoreText.text += "Total Score = " + score + "\n" + "Total Items = " + count;
+        // (S2C) RDW
+        howMuchUserRotated = angleBetweenVectors (prevForwardVector, camera.transform.forward);
+        directionUserRotated = (d (camera.transform.position + prevForwardVector, camera.transform.position, camera.transform.position + camera.transform.forward) > 0) ? 1 : -1;
+        deltaYawRelativeToCenter = prevYawRelativeToCenter - angleBetweenVectors (camera.transform.forward, VRTrackingOrigin.transform.position - camera.transform.position);
+        distanceFromCenter = camera.transform.localPosition.magnitude;
+        howMuchToAccelerate = ((deltaYawRelativeToCenter < 0) ? -0.13f : 0.30f) * howMuchUserRotated * directionUserRotated * Mathf.Clamp (distanceFromCenter / longestDimensionOfPE / 2, 0, 1);
+        if (Mathf.Abs (howMuchToAccelerate) > 0) VRTrackingOrigin.transform.RotateAround (camera.transform.position, Vector3.up, howMuchToAccelerate);
+        prevForwardVector = camera.transform.forward;
+        prevYawRelativeToCenter = angleBetweenVectors (camera.transform.forward, VRTrackingOrigin.transform.position - camera.transform.position);
 
-        // if (Input.GetKeyDown ("1")) {
-        //     // got from nick code
-        //     RaycastHit hit;
-        //     if (Physics.Raycast (transform.position, transform.forward, out hit, 100.0f)) {
-        //         name = hit.transform.GetComponent<CollectibleTreasure> ().prefab;
-        //         // You’ll need to change LoadAssetAtPath to Resources.Load to get it to build
-        //         CollectibleTreasure prefab = Resources.Load (name + ".prefab", typeof (CollectibleTreasure)) as CollectibleTreasure;
-        //         if (!inventory.numberOfEachThingICollected.ContainsKey (prefab)) inventory.numberOfEachThingICollected.Add (prefab, 1);
-        //         else inventory.numberOfEachThingICollected[prefab] += 1;
-        //         Destroy (hit.transform.gameObject);
-        //     }
-        // }
+        // translational
+        trajectoryVector = camera.transform.position - prevLocation;
+        howMuchToTranslate = trajectoryVector * 0.5f;
+        VRTrackingOrigin.transform.position += howMuchToTranslate;
+        prevLocation=camera.transform.position;
+
+
+        if (Input.GetKeyDown ("space")) {
+            Debug.Log ("Space");
+            RaycastHit hit;
+            if (Physics.Raycast (aerialCam.transform.position, aerialCam.transform.forward, out hit, 100.0f)) Destroy (hit.transform.gameObject);
+        }
         //equivalent to GrabRight in UE4 version (right grip)    
         if (OVRInput.GetDown (OVRInput.RawButton.RHandTrigger)) {
             // outputText3.text = "Grip";
@@ -105,14 +125,6 @@ public class TreasureHunter : MonoBehaviour {
         }
         previousPointerPos = rightPointerObject.gameObject.transform.position;
     }
-    int calculateScore () {
-        int totalScore = 0;
-        foreach (CollectibleTreasure treasure in inventory.numberOfEachThingICollected.Keys) {
-            totalScore += inventory.numberOfEachThingICollected[treasure] * treasure.treasureValue;
-        }
-        return totalScore;
-    }
-
     CollectibleTreasure getClosestHitObject (Collider[] hits) {
         float closestDistance = 10000.0f;
         CollectibleTreasure closestObjectSoFar = null;
@@ -142,27 +154,6 @@ public class TreasureHunter : MonoBehaviour {
 
     void letGo () {
         if (thingIGrabbed) {
-            //  CollectibleTreasure prefab = Resources.Load (name + ".prefab", typeof (CollectibleTreasure)) as CollectibleTreasure;
-            //     if (!inventory.numberOfEachThingICollected.ContainsKey (prefab)) inventory.numberOfEachThingICollected.Add (prefab, 1);
-            //     else inventory.numberOfEachThingICollected[prefab] += 1;
-            //     Destroy (thingIGrabbed);
-
-            // Collider[] overlappingThingsWithLeftHand = Physics.OverlapSphere (leftPointerObject.transform.position, 0.01f, collectiblesMask);
-            // if (overlappingThingsWithLeftHand.Length > 0) {
-            //     if (thingOnGun) {
-            //         detachGameObject (thingOnGun, AttachmentRule.KeepWorld, AttachmentRule.KeepWorld, AttachmentRule.KeepWorld);
-            //         simulatePhysics (thingOnGun, Vector3.zero, true);
-            //     }
-            //     attachGameObjectToAChildGameObject (overlappingThingsWithLeftHand[0].gameObject, leftPointerObject, AttachmentRule.SnapToTarget, AttachmentRule.SnapToTarget, AttachmentRule.KeepWorld, true);
-            //     thingOnGun = overlappingThingsWithLeftHand[0].gameObject;
-            //     thingIGrabbed = null;
-            if (rightPointerObject) {
-
-            } else {
-
-            }
-
-            if (camera) { } else { }
             if (rightPointerObject.gameObject.transform.position.y < camera.transform.position.y - 0.2 && rightPointerObject.gameObject.transform.position.y > camera.transform.position.y - 0.6 &&
                 rightPointerObject.gameObject.transform.position.x < camera.transform.position.x + 0.2 && rightPointerObject.gameObject.transform.position.x > camera.transform.position.x - 0.6 &&
                 rightPointerObject.gameObject.transform.position.z < camera.transform.position.z + 0.2 && rightPointerObject.gameObject.transform.position.z > camera.transform.position.z - 0.6) {
@@ -227,19 +218,10 @@ public class TreasureHunter : MonoBehaviour {
             }
         } else {
             if (simulate) {
-                //there's actually a problem here relative to the UE4 version since Unity doesn't have this simple "simulate physics" option
-                //The object will NOT preserve momentum when you throw it like in UE4.
-                //need to set its velocity itself.... even if you switch the kinematic/gravity settings around instead of deleting/adding rb
                 Rigidbody newRB = target.AddComponent<Rigidbody> ();
                 newRB.velocity = oldParentVelocity;
             }
         }
-    }
-
-    void OnTriggerEnter (Collider collider) {
-        ground.enabled = false;
-        scaryPlane.enabled = true;
-        scaryScream.enabled = true;
     }
 
 }

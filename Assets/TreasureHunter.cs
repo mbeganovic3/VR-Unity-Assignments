@@ -45,8 +45,8 @@ public class TreasureHunter : MonoBehaviour {
         return (A.x - B.x) * (C.z - B.z) - (A.z - B.z) * (C.x - B.x);
     }
     public float angleBetweenVectors (Vector3 A, Vector3 B) {
-        // A.y = 0;
-        // B.y = 0;
+        A.y = 0;
+        B.y = 0;
         return (Mathf.Acos (Vector3.Dot (Vector3.Normalize (A), Vector3.Normalize (B)))) * (180 / Mathf.PI);
     }
 
